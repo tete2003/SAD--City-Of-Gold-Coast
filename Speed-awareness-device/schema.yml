@@ -1,0 +1,292 @@
+version: 2
+
+models:
+  - name: mart_sierzega_fct_sad_vehicle_records_clean
+    description: >
+      Reporting-ready cleaned SAD vehicle records used as the base table for
+      Power BI reporting. Includes only valid records with non-null V1 and V2,
+      and applies the final agreed cleaning rule of keeping speeds between
+      10 and 150 km/h.
+    columns:
+      - name: vehicle_record_sk
+        description: Unique vehicle event surrogate key.
+        tests:
+          - not_null
+          - unique
+      - name: device_id
+        description: Device identifier for the vehicle event.
+        tests:
+          - not_null
+      - name: vehicle_event_ts
+        description: Timestamp of the vehicle event.
+        tests:
+          - not_null
+      - name: event_date
+        description: Date derived from vehicle_event_ts.
+      - name: event_hour
+        description: Hour derived from vehicle_event_ts.
+      - name: approach_speed
+        description: V1 speed after cleaning, restricted to 10-150 km/h.
+      - name: departure_speed
+        description: V2 speed after cleaning, restricted to 10-150 km/h.
+      - name: reduction_speed
+        description: Difference between approach_speed and departure_speed.
+      - name: speed_behaviour
+        description: Behaviour classification based on V1 and V2.
+      - name: property_surrogate_key
+        description: Site key used for reporting relationships.
+        tests:
+          - not_null
+      - name: gis_id
+        description: GIS identifier of the assigned site.
+        tests:
+          - not_null
+      - name: posted_speed
+        description: Posted speed of the assigned site.
+      - name: above_posted_speed_on_approach
+        description: Flag indicating whether V1 exceeded the posted speed.
+
+  - name: mart_sierzega_fct_sad_hourly_site_summary
+    description: >
+      Pre-aggregated hourly site summary built from the cleaned vehicle records.
+      Used for broader site and device trend reporting in Power BI.
+    columns:
+      - name: property_surrogate_key
+        description: Site key for the hourly aggregate.
+      - name: gis_id
+        description: GIS identifier for the hourly aggregate.
+      - name: device_id
+        description: Device identifier for the hourly aggregate.
+      - name: event_date
+        description: Date of the hourly aggregate.
+      - name: event_hour
+        description: Hour of the hourly aggregate.
+      - name: interval_start
+        description: Hour bucket for the aggregate.
+      - name: posted_speed
+        description: Posted speed of the site.
+      - name: vehicle_count
+        description: Number of cleaned vehicle records in the hour.
+      - name: avg_approach_speed
+        description: Average V1 speed for the hour.
+      - name: avg_departure_speed
+        description: Average V2 speed for the hour.
+      - name: avg_speed_reduction
+        description: Average speed reduction for the hour.
+      - name: speed_reduction_rate_pct
+        description: Percentage of speed_reduced records in the hour.
+      - name: above_posted_speed_rate_pct
+        description: Percentage of vehicles above posted speed on approach.
+
+  - name: mart_sierzega_dim_sad_current_sites
+    description: >
+      Current Drive Safe site dimension used for slicers, labels, and map fields
+      in Power BI.
+    columns:
+      - name: property_surrogate_key
+        description: Current property surrogate key.
+        tests:
+          - not_null
+      - name: gis_id
+        description: Current nonblank GIS identifier.
+        tests:
+          - not_null
+      - name: site_type
+        description: Site type, filtered to Drive Safe.
+      - name: street_name
+        description: Street name of the site.
+      - name: site_location
+        description: Full site location text exactly as stored in the data.
+      - name: suburb
+        description: Suburb of the site.
+      - name: division_number
+        description: Division number for councillor mapping.
+      - name: posted_speed
+        description: Current posted speed of the site.
+      - name: latitude
+        description: Latitude coordinate.
+      - name: longitude
+        description: Longitude coordinate.
+      - name: valid_from
+        description: Start of record validity from the upstream dimension.
+      - name: valid_to
+        description: End of record validity from the upstream dimension.
+      - name: is_current
+        description: Flag showing current active site records.
+
+  - name: mart_sierzega_councillor_side_panel
+    description: >
+      Deployment-aware side panel and selector view for Power BI. Provides one
+      row per deployment with deployment dates, site details, and councillor
+      information.
+    columns:
+      - name: deployment_key
+        description: Unique deployment identifier.
+        tests:
+          - not_null
+      - name: property_surrogate_key
+        description: Site key for the deployment.
+      - name: device_id
+        description: Device identifier for the deployment.
+      - name: gis_id
+        description: GIS identifier for the deployment.
+      - name: period_type
+        description: Whether the deployment is Latest or Historical.
+      - name: period_start_date
+        description: Reporting period start date derived from stay_start.
+      - name: installed_date
+        description: Installed date derived from stay_start.
+      - name: removed_date
+        description: Removed date derived from stay_end.
+      - name: days_installed
+        description: Calculated number of installed days.
+      - name: division_number
+        description: Division number used for councillor mapping.
+      - name: councillor_name
+        description: Councillor name joined from DIM_COUNCILLOR_NAME.
+      - name: suburb
+        description: Deployment suburb.
+      - name: street_name
+        description: Deployment street.
+      - name: location
+        description: Full location text for the deployment.
+      - name: speed_limit_kmh
+        description: Speed limit for the deployment location.
+      - name: latitude
+        description: Latitude coordinate.
+      - name: longitude
+        description: Longitude coordinate.
+      - name: total_vehicles
+        description: Count of cleaned vehicle records within the deployment period.
+
+  - name: mart_sierzega_councillor_summary
+    description: >
+      Deployment-level councillor summary view containing KPI-style summary
+      metrics for the Councillor report.
+    columns:
+      - name: deployment_key
+        description: Unique deployment identifier.
+        tests:
+          - not_null
+      - name: property_surrogate_key
+        description: Site key for the deployment summary.
+      - name: device_id
+        description: Device identifier for the deployment.
+      - name: gis_id
+        description: GIS identifier for the deployment.
+      - name: prepared_on
+        description: Date the summary was prepared.
+      - name: period_type
+        description: Whether the deployment is Latest or Historical.
+      - name: period_start_date
+        description: Reporting period start date.
+      - name: device_installed
+        description: Installed date of the deployment.
+      - name: device_removed
+        description: Removed date of the deployment.
+      - name: days_installed
+        description: Calculated deployment duration.
+      - name: division_number
+        description: Division number.
+      - name: councillor_name
+        description: Councillor name joined from DIM_COUNCILLOR_NAME.
+      - name: deployment_street
+        description: Street for the deployment.
+      - name: location
+        description: Full location text for the deployment.
+      - name: suburb
+        description: Suburb for the deployment.
+      - name: speed_limit_kmh
+        description: Posted speed for the deployment.
+      - name: total_vehicles
+        description: Total cleaned vehicle records in the deployment.
+      - name: vehicles_over_speed_limit_v1
+        description: Count of vehicles over the speed limit at V1.
+      - name: vehicles_over_speed_limit_v2
+        description: Count of vehicles over the speed limit at V2.
+      - name: pct_vehicles_over_speed_limit_v1
+        description: Percentage of vehicles over the speed limit at V1.
+      - name: pct_vehicles_over_speed_limit_v2
+        description: Percentage of vehicles over the speed limit at V2.
+      - name: avg_speed_v1_kmh
+        description: Average V1 speed.
+      - name: avg_speed_v2_kmh
+        description: Average V2 speed.
+      - name: pct_already_complying_v1
+        description: Percentage already complying at V1.
+      - name: pct_already_complying_v2
+        description: Percentage already complying at V2.
+      - name: avg_speed_reduction_all_slowing_kmh
+        description: Average reduction for all slowing vehicles.
+      - name: avg_speed_reduction_over_limit_kmh
+        description: Average reduction for vehicles over the speed limit.
+      - name: pct_over_limit_slowed_below_limit
+        description: Percentage of speeding vehicles slowed to at or below the limit.
+
+  - name: mart_sierzega_fct_sad_hourly_deployment_summary
+    description: >
+      Deployment-aware hourly summary used for charts that must follow one exact
+      installed and removed period. Includes weekly bucket support for Power BI.
+    columns:
+      - name: deployment_key
+        description: Unique deployment identifier.
+        tests:
+          - not_null
+      - name: property_surrogate_key
+        description: Site key for the deployment-hour record.
+      - name: device_id
+        description: Device identifier for the deployment-hour record.
+      - name: gis_id
+        description: GIS identifier for the deployment-hour record.
+      - name: division_number
+        description: Division number for the deployment-hour record.
+      - name: street_name
+        description: Street name for the deployment.
+      - name: location
+        description: Full location text for the deployment.
+      - name: suburb
+        description: Suburb for the deployment.
+      - name: speed_limit_kmh
+        description: Speed limit for the deployment.
+      - name: installed_date
+        description: Installed date for the deployment.
+      - name: removed_date
+        description: Removed date for the deployment.
+      - name: days_installed
+        description: Duration of the deployment in days.
+      - name: period_type
+        description: Whether the deployment is Latest or Historical.
+      - name: event_date
+        description: Event date of the hourly aggregate.
+      - name: week_start_date
+        description: Week bucket derived from event_date.
+      - name: event_hour
+        description: Hour of the hourly aggregate.
+      - name: interval_start
+        description: Hour timestamp bucket.
+      - name: vehicle_count
+        description: Number of cleaned vehicle records in the hour.
+      - name: avg_approach_speed
+        description: Average V1 speed in the hour.
+      - name: avg_departure_speed
+        description: Average V2 speed in the hour.
+      - name: avg_speed_reduction
+        description: Average speed reduction in the hour.
+      - name: speed_reduction_rate_pct
+        description: Percentage of speed_reduced records in the hour.
+      - name: above_posted_speed_rate_pct
+        description: Percentage of vehicles above posted speed on approach.
+      - name: pct_vehicles_over_speed_limit_v1
+        description: Percentage of vehicles over the speed limit at V1.
+      - name: pct_vehicles_over_speed_limit_v2
+        description: Percentage of vehicles over the speed limit at V2.
+      - name: pct_already_complying_v1
+        description: Percentage already complying at V1.
+      - name: pct_already_complying_v2
+        description: Percentage already complying at V2.
+      - name: avg_speed_reduction_all_slowing_kmh
+        description: Average reduction for all slowing vehicles.
+      - name: avg_speed_reduction_over_limit_kmh
+        description: Average reduction for vehicles over the speed limit.
+      - name: pct_over_limit_slowed_below_limit
+        description: Percentage of speeding vehicles slowed to at or below the limit.
